@@ -1,7 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
     const productList = document.getElementById('product-list');
+    let db;
 
-    // Dữ liệu mẫu (Giống file data/products.json)
+    // Khởi tạo Firebase
+    if (typeof firebase !== 'undefined') {
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.firestore();
+        } catch (e) {
+            console.error("Firebase init error:", e);
+        }
+    }
+
     const localProducts = [
         {
             "id": 1,
@@ -95,35 +107,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     ];
 
-    // Hàm format giá tiền
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
     };
 
     let stockData = {};
 
-    // Fetch stock data from server
-    async function fetchStock() {
-        try {
-            const response = await fetch('http://localhost:3000/api/stock');
-            if (response.ok) {
-                stockData = await response.json();
-            }
-        } catch (error) {
-            console.error("Error fetching stock:", error);
-        }
-        renderProducts(localProducts);
-    }
-
-    // Hàm render sản phẩm
     function renderProducts(products) {
         productList.innerHTML = '';
         products.forEach(product => {
-            // Lấy giá thấp nhất để hiển thị "Từ..."
             const minPrice = Math.min(...product.options.map(opt => opt.price));
-
-            // Get stock info for this product
-            // Key mapping: convert name to lowercase to match server keys
             const stockKey = product.name.toLowerCase();
             const info = stockData[stockKey] || { available: 0, sold: 0 };
 
@@ -148,11 +141,52 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Init Logic
-    fetchStock();
+    // Subscribe to Firestore updates for Realtime Stock
+    function subscribeStock() {
+        if (!db) return;
 
-    // Loop fetch stock every 30 seconds to keep updated
-    setInterval(fetchStock, 30000);
+        // Listen to 'accounts' collection
+        db.collection("accounts").where("status", "==", "available")
+            .onSnapshot((snapshot) => {
+                const tempStock = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const prodName = data.product.toLowerCase();
+                    if (!tempStock[prodName]) tempStock[prodName] = 0;
+                    tempStock[prodName]++;
+                });
+
+                Object.keys(tempStock).forEach(key => {
+                    if (!stockData[key]) stockData[key] = { available: 0, sold: 0 };
+                    stockData[key].available = tempStock[key];
+                });
+
+                renderProducts(localProducts);
+            });
+
+        db.collection("accounts").where("status", "==", "sold")
+            .onSnapshot((snapshot) => {
+                const tempSold = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const prodName = data.product.toLowerCase();
+                    if (!tempSold[prodName]) tempSold[prodName] = 0;
+                    tempSold[prodName]++;
+                });
+
+                Object.keys(tempSold).forEach(key => {
+                    if (!stockData[key]) stockData[key] = { available: 0, sold: 0 };
+                    stockData[key].sold = tempSold[key];
+                });
+                renderProducts(localProducts);
+            });
+    }
+
+    if (db) {
+        subscribeStock();
+    } else {
+        renderProducts(localProducts); // Fallback
+    }
 
     // Smooth Scroll
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -167,23 +201,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Hàm mua sản phẩm (Global)
 async function buyProduct(productName) {
+    if (typeof firebase === 'undefined') {
+        alert("Lỗi: Firebase chưa được tải.");
+        return;
+    }
+
     if (!confirm(`Bạn có chắc chắn muốn mua ${productName}?`)) return;
 
-    try {
-        const response = await fetch(`http://localhost:3000/api/buy/${encodeURIComponent(productName)}`);
-        const data = await response.json();
+    const db = firebase.firestore();
+    const accountsRef = db.collection('accounts');
+    const q = accountsRef.where('product', '==', productName.toLowerCase()).where('status', '==', 'available').limit(1);
 
-        if (data.success) {
-            alert(`Mua thành công!\nTài khoản của bạn: ${data.account}`);
-            // Refresh stock display
-            // Reload page or re-fetch stock
-            window.location.reload();
-        } else {
-            alert(`Lỗi: ${data.message}`);
-        }
-    } catch (error) {
-        console.error("Lỗi mua hàng:", error);
-        alert("Có lỗi xảy ra khi kết nối tới server.");
+    try {
+        await db.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(q);
+            if (snapshot.empty) {
+                throw "Hết hàng!";
+            }
+
+            const accountDoc = snapshot.docs[0];
+            const accountData = accountDoc.data();
+
+            // Cập nhật trạng thái thành sold
+            transaction.update(accountDoc.ref, {
+                status: 'sold',
+                soldAt: new Date()
+            });
+
+            // Trả về dữ liệu tài khoản cho user view
+            return accountData.data;
+        }).then((accountInfo) => {
+            alert(`Mua thành công!\nTài khoản của bạn: ${accountInfo}`);
+        }).catch((error) => {
+            console.error("Giao dịch thất bại: ", error);
+            if (error === "Hết hàng!") {
+                alert("Sản phẩm này hiện đã hết hàng.");
+            } else {
+                alert("Có lỗi xảy ra, vui lòng thử lại.");
+            }
+        });
+    } catch (e) {
+        console.error(e);
     }
 }
-
