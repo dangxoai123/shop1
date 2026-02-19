@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Shop - Dịch Vụ Mạng Xã Hội Cao Cấp</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div class="background-glow"></div>
+    
+    <header>
+        <div class="container navbar">
+            <div class="logo">Social<span>Shop</span></div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#products">Dịch vụ</a></li>
+                    <li><a href="#features">Ưu điểm</a></li>
+                    <li><a href="#contact" class="btn-primary">Liên hệ</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container hero-content">
+            <span class="badge-top">🚀 Giải pháp số 1 Việt Nam</span>
+            <h1>Nâng Tầm Trải Nghiệm <br><span class="text-gradient">Kỹ Thuật Số</span></h1>
+            <p>Cung cấp tài khoản Premium, AI, Youtube, Netflix... với giá tốt nhất và bảo hành tuyệt đối.</p>
+            <div class="hero-actions">
+                <a href="#products" class="btn-glow">Xem Dịch Vụ</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="products" class="products-section">
+        <div class="container">
+            <h2 class="section-title">Dịch Vụ <span>Nổi Bật</span></h2>
+            <div id="product-list" class="product-grid">
+                <!-- Javascript will load products here -->
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features-section">
+        <div class="container">
+            <div class="feature-card">
+                <div class="icon-box">⚡</div>
+                <h3>Giao Dịch Siêu Tốc</h3>
+                <p>Nhận tài khoản ngay sau khi thanh toán.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon-box">🛡️</div>
+                <h3>Bảo Hành Uy Tín</h3>
+                <p>Cam kết bảo hành 1-1 trong suốt thời gian sử dụng.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon-box">💎</div>
+                <h3>Giá Cả Cạnh Tranh</h3>
+                <p>Mức giá tốt nhất thị trường.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="contact-section">
+        <div class="container contact-wrapper">
+            <div class="contact-content">
+                <h2 class="section-title">Liên Hệ <span>Hỗ Trợ</span></h2>
+                <div class="contact-buttons">
+                    <a href="https://zalo.me/0395579201" target="_blank" class="btn-contact zalo">
+                        Chat Zalo: 0395579201
+                    </a>
+                    <a href="https://t.me/sharetooltut" target="_blank" class="btn-contact telegram">
+                        Join Group Telegram
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <p>&copy; 2024 Social Shop. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

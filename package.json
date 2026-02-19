@@ -1,0 +1,17 @@
+{
+    "name": "social-media-shop",
+    "version": "1.0.0",
+    "description": "Shop bán tài khoản dịch vụ mạng xã hội",
+    "main": "server/app.js",
+    "scripts": {
+        "start": "node server/app.js",
+        "dev": "node --watch server/app.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.18.2"
+    }
+}

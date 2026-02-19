@@ -1,0 +1,5 @@
+node_modules
+.DS_Store
+# fileacc chứa dữ liệu tài khoản thật, cân nhắc có nên đưa lên hay không.
+# Nếu bạn muốn backup cả dữ liệu thì bỏ dòng dưới đi.
+# fileacc/
