@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Import Data - Social Shop</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Reuse main styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .import-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper {
+            margin: 20px 0;
+        }
+
+        input[type="file"] {
+            color: var(--text-gray);
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+
+        .btn-import {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-import:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        #status {
+            margin-top: 20px;
+            color: var(--text-gray);
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-glow"></div>
+
+    <div class="import-container">
+        <h1>Import Dữ Liệu Sản Phẩm</h1>
+        <p>Chọn file `products.json` hoặc dán nội dung JSON vào bên dưới.</p>
+
+        <div class="file-input-wrapper">
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+
+        <textarea id="jsonContent" placeholder="Nội dung JSON sẽ hiện ở đây..."></textarea>
+
+        <button class="btn-import" onclick="importData()">Import lên Firestore</button>
+
+        <div id="status"></div>
+    </div>
+
+    <!-- Firebase Config -->
+    <script src="js/firebase-config.js"></script>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const jsonContent = document.getElementById('jsonContent');
+        const statusDiv = document.getElementById('status');
+        let db;
+
+        // Init Firebase
+        if (typeof firebase !== 'undefined') {
+            try {
+                // Initialize Firebase if not already initialized
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.firestore();
+                log("Firebase đã kết nối sẵn sàng!", "success");
+            } catch (e) {
+                log("Lỗi khởi tạo Firebase: " + e.message, "error");
+            }
+        }
+
+        // Handle File Select
+        fileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                jsonContent.value = e.target.result;
+                try {
+                    const json = JSON.parse(e.target.result);
+                    log(`Đã tải file: ${file.name} (${json.length} sản phẩm)`, "info");
+                } catch (err) {
+                    log("Lỗi: File không phải là JSON hợp lệ!", "error");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // Logger function
+        function log(msg, type = 'info') {
+            statusDiv.style.display = 'block';
+            const time = new Date().toLocaleTimeString();
+            let color = '#ccc';
+            if (type === 'success') color = '#4ade80';
+            if (type === 'error') color = '#ef4444';
+
+            statusDiv.innerHTML += `<div style="color: ${color}">[${time}] ${msg}</div>`;
+            statusDiv.scrollTop = statusDiv.scrollHeight;
+        }
+
+        // Import Function
+        async function importData() {
+            const content = jsonContent.value;
+            if (!content) {
+                log("Vui lòng chọn file hoặc dán nội dung JSON!", "error");
+                return;
+            }
+
+            let products;
+            try {
+                products = JSON.parse(content);
+            } catch (e) {
+                log("Lỗi: Nội dung không phải là JSON hợp lệ!", "error");
+                return;
+            }
+
+            if (!Array.isArray(products)) {
+                log("Lỗi: JSON phải là một mảng (Array) các sản phẩm!", "error");
+                return;
+            }
+
+            log(`Bắt đầu import ${products.length} sản phẩm...`, "info");
+
+            const batch = db.batch();
+            const productsRef = db.collection('products');
+
+            try {
+                products.forEach(product => {
+                    // Use ID as document ID to avoid duplicates
+                    const docRef = productsRef.doc(product.id.toString());
+                    batch.set(docRef, product);
+                });
+
+                await batch.commit();
+                log("✅ Import thành công tất cả sản phẩm!", "success");
+                log("Bạn có thể tải lại trang chủ để xem dữ liệu mới.", "info");
+            } catch (error) {
+                log("❌ Lỗi khi import: " + error.message, "error");
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+
+</html>
